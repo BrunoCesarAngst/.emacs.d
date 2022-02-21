@@ -1,29 +1,208 @@
-(setq custom-file "~/.emacs.d/custom.el")
-(load custom-file 'noerror)
+;; Make gc pauses faster by decreasing the threshold.
+(setq gc-cons-threshold (* 2 1000 1000))
 
-(setq custom-package "~/.emacs.d/package.el")
-(load custom-package 'noerror)
+;; You will most likely need to adjust this font size for your system!
+(defvar efs/default-font-size 90)
+(defvar efs/default-variable-font-size 90)
 
-(setq custom-command "~/.emacs.d/command.el")
-(load custom-command 'noerror)
+(set-face-attribute 'default nil :font "Fira Code Retina" :height efs/default-font-size)
 
+;; Set the fixed pitch face
+(set-face-attribute 'fixed-pitch nil :font "Fira Code Retina" :height efs/default-font-size)
+
+;; Set the variable pitch face
+(set-face-attribute 'variable-pitch nil :font "Cantarell" :height efs/default-variable-font-size :weight 'regular)
+
+;; Make frame transparency overridable
+(defvar efs/frame-transparency '(90 . 90))
+
+;; Set frame transparency
+(set-frame-parameter (selected-frame) 'alpha efs/frame-transparency)
+(add-to-list 'default-frame-alist `(alpha . ,efs/frame-transparency))
+(set-frame-parameter (selected-frame) 'fullscreen 'maximized)
+(add-to-list 'default-frame-alist '(fullscreen . maximized))
+
+;; ;; The default is 800 kilobytes.  Measured in bytes.
+(setq gc-cons-threshold (* 50 1000 1000))
+
+(defun efs/display-startup-time ()
+  (message "Emacs loaded in %s with %d garbage collections."
+           (format "%.2f seconds"
+                   (float-time
+                     (time-subtract after-init-time before-init-time)))
+           gcs-done))
+
+(add-hook 'emacs-startup-hook #'efs/display-startup-time)
+
+(setq initial-scratch-message ";; Olhe a sua agenda M-x: org-agenda.\n;; Capture algo M-x: org-capture.")
+
+(setq inhibit-startup-message t)
+
+(setq visible-bell t)       ;; Set up the visible bell
+(scroll-bar-mode -1)        ; Disable visible scrollbar
+;; ;;(tool-bar-mode -1)          ; Disable the toolbar
+;; (tooltip-mode -1)           ; Disable tooltips
+;; (set-fringe-mode 10)        ; Give some breathing room
+;; ;;(menu-bar-mode -1)            ; Disable the menu bar
+
+(defalias 'yes-or-no-p 'y-or-n-p)
+
+(column-number-mode)
+(global-display-line-numbers-mode t)
+
+(setq-default buffer-file-coding-system 'utf-8-unix)
+;; (set-terminal-coding-system 'utf-8)
+(set-language-environment 'utf-8)
+;; (set-keyboard-coding-system 'utf-8)
+(prefer-coding-system 'utf-8)
+;; (setq locale-coding-system 'utf-8)
+;; (set-default-coding-systems 'utf-8)
+;; (set-terminal-coding-system 'utf-8)
+;; (set-default-font "Monaco" 12)
+(set-fontset-font "fontset-default" 'chinese-gbk "Noto Sans Mono")
+
+;; Disable line numbers for some modes
+(dolist (mode '(org-mode-hook
+                term-mode-hook
+                shell-mode-hook
+                treemacs-mode-hook
+                eshell-mode-hook))
+  (add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+;; Make ESC quit prompts
+(global-set-key (kbd "<escape>") 'keyboard-escape-quit)
+
+;; (global-set-key (kbd "<f9>") #'compile)
+
+;; (global-set-key (kbd "<C-f9>")
+;;                 (lambda () (interactive)
+;;                   (save-buffer)
+;;                   (recompile)                
+;;                   ))
+;; (defun run-bash ()
+;;       (interactive)
+;;       (let ((shell-file-name "C:\\Program Files\\Git\\bin\\bash.exe"))
+;;         (shell "*bash*")))
+
+;; Open .emacs archive.
 (setq archive "~/projects/orgFiles/Archive.org")
+(defun open-archive-file ()
+  "Open the archive file."
+  (interactive)
+  (find-file archive))
+(global-set-key (kbd "C-c A") 'open-archive-file)
 
+;; Open .emacs birthdays.
 (setq birthdays "~/projects/orgFiles/Birthdays.org")
+(defun open-birthdays-file ()
+  "Open the birthdays file."
+  (interactive)
+  (find-file birthdays))
+(global-set-key (kbd "C-c B") 'open-birthdays-file)
 
+;; Open .emacs habits.
 (setq habits "~/projects/orgFiles/Habits.org")
+(defun open-habits-file ()
+  "Open the habits file."
+  (interactive)
+  (find-file habits))
+(global-set-key (kbd "C-c H") 'open-habits-file)
 
+;; Open .emacs journal.
 (setq journal "~/projects/orgFiles/Journal.org")
+(defun open-journal-file ()
+  "Open the journal file."
+  (interactive)
+  (find-file journal))
+(global-set-key (kbd "C-c J") 'open-journal-file)
 
+;; Open .emacs metrics.
 (setq metrics "~/projects/orgFiles/Metrics.org")
+(defun open-metrics-file ()
+  "Open the metrics file."
+  (interactive)
+  (find-file metrics))
+(global-set-key (kbd "C-c M") 'open-metrics-file)
 
+;; Open .emacs tasks.
 (setq tasks "~/projects/orgFiles/Tasks.org")
+(defun open-tasks-file ()
+  "Open the tasks file."
+  (interactive)
+  (find-file tasks))
+(global-set-key (kbd "C-c T") 'open-tasks-file)
 
-(add-to-list 'load-path "~/.emacs.d/emacs-eclim")
+(server-start)
 
-(require 'eclim)
-(global-eclim-mode)
-(require 'eclimd)
+;; Initialize package sources
+(require 'package)
+
+(setq package-archives '(("melpa" . "https://melpa.org/packages/")
+			 ("melpa-stable" . "https://stable.melpa.org/packages/")
+                         ("org" . "https://orgmode.org/elpa/")
+                         ("elpa" . "https://elpa.gnu.org/packages/")))
+
+(package-initialize)
+(unless package-archive-contents
+  (package-refresh-contents))
+
+  ;; Initialize use-package on non-Linux platforms
+(unless (package-installed-p 'use-package)
+  (package-install 'use-package))
+
+(require 'use-package)
+(setq use-package-always-ensure t)
+
+(use-package auto-package-update
+  :custom
+  (auto-package-update-interval 7)
+  (auto-package-update-prompt-before-update t)
+  (auto-package-update-hide-results t)
+  :config
+  (auto-package-update-maybe)
+  (auto-package-update-at-time "09:00"))
+
+(use-package all-the-icons)
+
+(use-package doom-themes
+  :ensure t
+  :config
+  ;; Global settings (defaults)
+  (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
+        doom-themes-enable-italic t) ; if nil, italics is universally disabled
+  (load-theme 'doom-one t)
+
+  ;; Enable flashing mode-line on errors
+  (doom-themes-visual-bell-config)
+  ;; Enable custom neotree theme (all-the-icons must be installed!)
+  (doom-themes-neotree-config)
+  ;; or for treemacs users
+  (setq doom-themes-treemacs-theme "doom-colors") ; use "doom-colors, doom-dracula" for less minimal icon theme
+  (doom-themes-treemacs-config)
+  ;; Corrects (and improves) org-mode's native fontification.
+  (doom-themes-org-config))
+
+(use-package doom-modeline
+  :init (doom-modeline-mode 1)
+  :custom ((doom-modeline-height 15)))
+
+(use-package which-key
+  :defer 0
+  :diminish which-key-mode
+  :config
+  (which-key-mode)
+  (setq which-key-idle-delay 1))
+
+(use-package auto-complete
+  :ensure t
+  :init
+  (progn
+    (ac-config-default)
+    (global-auto-complete-mode t)))
+
+(use-package emojify
+  :hook (after-init . global-emojify-mode))
+(add-hook 'after-init-hook #'global-emojify-mode)
 
 (use-package org-roam
   :ensure t
@@ -40,56 +219,20 @@
   :config
   (org-roam-setup))
 
-(use-package emojify
-  :hook (after-init . global-emojify-mode))
-(add-hook 'after-init-hook #'global-emojify-mode)
+;; (add-to-list 'load-path "~/.emacs.d/emacs-eclim")
+
+;; (require 'eclim)
+;; (global-eclim-mode)
+;; (require 'eclimd)
 
 
-;; (setup (:pkg diminish))
+;; ;; (setup (:pkg diminish))
 
-(use-package doom-themes
-  :ensure t
-  :config
-  ;; Global settings (defaults)
-  (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
-        doom-themes-enable-italic t) ; if nil, italics is universally disabled
-  (load-theme 'doom-one t)
-
-  ;; Enable flashing mode-line on errors
-  (doom-themes-visual-bell-config)
-  ;; Enable custom neotree theme (all-the-icons must be installed!)
-  (doom-themes-neotree-config)
-  ;; or for treemacs users
-  (setq doom-themes-treemacs-theme "doom-dracula") ; use "doom-colors" for less minimal icon theme
-  (doom-themes-treemacs-config)
-  ;; Corrects (and improves) org-mode's native fontification.
-  (doom-themes-org-config))
-
-(use-package all-the-icons)
-
-(use-package doom-modeline
-  :init (doom-modeline-mode 1)
-  :custom ((doom-modeline-height 15)))
-
-(use-package auto-complete
-  :ensure t
-  :init
-  (progn
-    (ac-config-default)
-    (global-auto-complete-mode t)))
-
-(use-package which-key
-  :defer 0
-  :diminish which-key-mode
-  :config
-  (which-key-mode)
-  (setq which-key-idle-delay 1))
-
-(use-package lsp-java :config (add-hook 'java-mode-hook 'lsp))
-(use-package dap-java :ensure nil)
-(use-package helm-lsp)
-(use-package helm
-  :config (helm-mode))
+;; (use-package lsp-java :config (add-hook 'java-mode-hook 'lsp))
+;; (use-package dap-java :ensure nil)
+;; (use-package helm-lsp)
+;; (use-package helm
+;;   :config (helm-mode))
 
 (use-package general
   :after evil
@@ -192,7 +335,8 @@
   ("f" nil "finished" :exit t))
 
 (efs/leader-keys
-  "ts" '(hydra-text-scale/body :which-key "scale text"))
+ "ts" '(hydra-text-scale/body :which-key "scale text"))
+
 
 (defun efs/org-font-setup ()
   ;; Replace list hyphen with dot
@@ -228,13 +372,6 @@
   (org-indent-mode)
   (variable-pitch-mode 1)
   (visual-line-mode 1))
-
-(use-package org
-  :pin org
-  :commands (org-capture org-agenda)
-  :hook (org-mode . efs/org-mode-setup)
-  :config
-  (setq org-ellipsis " ▾")
 
   (setq org-agenda-start-with-log-mode t)
   (setq org-log-done 'time)
@@ -351,7 +488,7 @@
   (define-key global-map (kbd "C-c j")
     (lambda () (interactive) (org-capture nil "jj")))
 
-  (efs/org-font-setup))
+  (efs/org-font-setup)
 
 (use-package org-bullets
   :hook (org-mode . org-bullets-mode)
@@ -375,10 +512,6 @@
 
   (push '("conf-unix" . conf-unix) org-src-lang-modes))
 
-(nconc org-babel-default-header-args:java
-       '((:dir . nil)
-         (:results . value)
-	 (:classname . Test))
 
 (with-eval-after-load 'org
   ;; This is needed as of Org 9.2
@@ -453,8 +586,8 @@
   :hook (python-mode . lsp-deferred)
   :custom
   ;; NOTE: Set these if Python 3 is called "python3" on your system!
-  ;; (python-shell-interpreter "python3")
-  ;; (dap-python-executable "python3")
+  (python-shell-interpreter "python3")
+  (dap-python-executable "python3")
   (dap-python-debugger 'debugpy)
   :config
   (require 'dap-python))
@@ -511,17 +644,17 @@
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
 
-(use-package term
-  :commands term
-  :config
-  (setq explicit-shell-file-name "bash") ;; Change this to zsh, etc
-  ;;(setq explicit-zsh-args '())         ;; Use 'explicit-<shell>-args for shell-specific args
+;; (use-package term
+;;   :commands term
+;;   :config
+;;   (setq explicit-shell-file-name "bash") ;; Change this to zsh, etc
+;;   ;;(setq explicit-zsh-args '())         ;; Use 'explicit-<shell>-args for shell-specific args
 
-  ;; Match the default Bash shell prompt.  Update this if you have a custom prompt
-  (setq term-prompt-regexp "^[^#$%>\n]*[#$%>] *"))
+;;   ;; Match the default Bash shell prompt.  Update this if you have a custom prompt
+;;   (setq term-prompt-regexp "^[^#$%>\n]*[#$%>] *"))
 
-(use-package eterm-256color
-  :hook (term-mode . eterm-256color-mode))
+;; (use-package eterm-256color
+;;   :hook (term-mode . eterm-256color-mode))
 
 (use-package vterm
   :commands vterm
@@ -574,8 +707,8 @@
     "h" 'dired-single-up-directory
     "l" 'dired-single-buffer))
 
-(use-package dired-single
-  :commands (dired dired-jump))
+;; (use-package dired-single
+;;   :commands (dired dired-jump))
 
 (use-package all-the-icons-dired
   :hook (dired-mode . all-the-icons-dired-mode))
@@ -588,11 +721,11 @@
   (setq dired-open-extensions '(("png" . "feh")
                                 ("mkv" . "mpv"))))
 
-(use-package dired-hide-dotfiles
-  :hook (dired-mode . dired-hide-dotfiles-mode)
-  :config
-  (evil-collection-define-key 'normal 'dired-mode-map
-    "H" 'dired-hide-dotfiles-mode))
+;; (use-package dired-hide-dotfiles
+;;   :hook (dired-mode . dired-hide-dotfiles-mode)
+;;   :config
+;;   (evil-collection-define-key 'normal 'dired-mode-map
+;;     "H" 'dired-hide-dotfiles-mode))
 
 (use-package org-tree-slide
   :custom
@@ -636,7 +769,3 @@
   (org-tree-slide-header t)
   (org-tree-slide-breadcrumbs " > ")
   (org-image-actual-width nil))
-
-
-;; Make gc pauses faster by decreasing the threshold.
-(setq gc-cons-threshold (* 2 1000 1000))
